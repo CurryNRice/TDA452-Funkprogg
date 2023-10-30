@@ -15,28 +15,36 @@ power n k  = n * power n (k-1)
 -- power n k takes to compute
 
 stepsPower :: Integer -> Integer -> Integer
-stepsPower n k = undefined 
+stepsPower n k = k+1 
 
 
 -- B -------------------------
--- power1
+power1 :: Integer -> Integer -> Integer
 
-power1 = undefined
+power1 n k = product(replicate (fromInteger k) n)
 
 -- C -------------------------
--- power2
+power2 :: Integer -> Integer -> Integer
 
-power2 = undefined
+power2 n 0 = 1
+
+power2 n k = if even k then power2 (n*n) (div k 2) else n * (power2 n (k-1))
 
 -- D -------------------------
 {- 
 
 <Describe your test cases here>
 
+5^1
+2^0
+2^2
+
+
  -}
 
 -- 
-prop_powers = undefined
+prop_powers :: Integer -> Integer -> Integer
+prop_powers n k = if ((power n k == power1 n k) and (power n k == power2 n k)) then 1 else 0
 
 --
 powerTest :: Bool
