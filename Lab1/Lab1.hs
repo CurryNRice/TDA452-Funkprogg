@@ -3,6 +3,8 @@
    Authors:
    Lab group:
  -}
+ import Test.QuickCheck
+
 --------------------------------------------
 power :: Integer -> Integer -> Integer
 power n k
@@ -29,7 +31,10 @@ power2 :: Integer -> Integer -> Integer
 
 power2 n 0 = 1
 
-power2 n k = if even k then power2 (n*n) (div k 2) else n * (power2 n (k-1))
+{- power2 n k = if even k then power2 (n*n) (div k 2) else n * power2 n (k-1) -}
+
+power2 n k | even k    = power2 (n*n) (div k 2)
+           | otherwise = n * power2 n (k-1)
 
 -- D -------------------------
 {- 
@@ -44,16 +49,14 @@ power2 n k = if even k then power2 (n*n) (div k 2) else n * (power2 n (k-1))
  -}
 
 -- 
-{-
-prop_powers :: Integer -> Integer -> Integer
-prop_powers n k = if ((power n k == power1 n k) and (power n k == power2 n k)) then 1 else 0
--}
 prop_powers :: Integer -> Integer -> Bool
-prop_powers n k = and ((power n k == power1 n k), (power n k == power2 n k))
+prop_powers n k = and [(power n k == power1 n k), (power n k == power2 n k)]
 
 --
 powerTest :: Bool
 powerTest = undefined
 
 --
-prop_powers' = undefined
+prop_powers' n k = and [(power n' k' == power1 n' k'), (power n' k' == power2 n' k')]
+   where n' = abs n
+         k' = abs k
