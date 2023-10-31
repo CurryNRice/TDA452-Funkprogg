@@ -44,8 +44,12 @@ power2 n k = if even k then power2 (n*n) (div k 2) else n * (power2 n (k-1))
  -}
 
 -- 
+{-
 prop_powers :: Integer -> Integer -> Integer
 prop_powers n k = if ((power n k == power1 n k) and (power n k == power2 n k)) then 1 else 0
+-}
+prop_powers :: Integer -> Integer -> Bool
+prop_powers n k = and ((power n k == power1 n k), (power n k == power2 n k))
 
 --
 powerTest :: Bool
