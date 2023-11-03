@@ -30,8 +30,21 @@ sizeSteps = [size hand2
 
 -- A1: Implement a function that, given a hand,
 --     shows the cards in it in a nice format.
+
+jackOfhearts = Card Jack Hearts
+twoOfClubs = Card (Numeric 2) Clubs
+aceOfSpades = Card Ace Spades
+exhand = (Add (twoOfClubs)
+              (Add (jackOfhearts) 
+                  (Add (aceOfSpades) Empty)))
+
 display :: Hand -> String
-display h = undefined
+display Empty = ""
+display (Add c h) = displayCard c ++ ['\n'] ++ display h
+
+displayCard :: Card -> String
+displayCard (Card (Numeric r) c) = show r ++ " of " ++ show c
+displayCard (Card r c) = show r ++ " of " ++ show c
 
 
 ------------------------------------------------------------
@@ -69,7 +82,30 @@ display h = undefined
 -}
 
 value :: Hand -> Integer
-value h = undefined
+value Empty = 0
+value (Add (Card r c) h) = if val > 21 then (val - 13*numberOfAces hand) else val 
+  where 
+    hand = (Add (Card r c) h)
+    val = value' hand 0
+  
+  
+
+value' :: Hand -> Integer -> Integer
+value' Empty v                        = v
+value' (Add (Card Ace c) h) v         = value h (14+v) 
+value' (Add (Card King c) h) v        = value h (13+v) 
+value' (Add (Card Queen c) h) v       = value h (12+v) 
+value' (Add (Card Jack c) h) v        = value h (11+v) 
+value' (Add (Card (Numeric n) c) h) v = value h (n+v) 
+
+
+
+numberOfAces :: Hand -> Integer
+numberOfAces Empty = 0
+numberOfAces (Add (Card r c) h) 
+              | r == Ace = 1 + numberOfAces h
+              | otherwise = numberOfAces h
+
 
 ------------------------------------------------------------
 
