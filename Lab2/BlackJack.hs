@@ -160,7 +160,7 @@ shuffleDeck g hand=  Add card (shuffleDeck g' restHand)
                   (card, restHand) = takeCardByIndex Empty hand x
                   takeCardByIndex :: Hand -> Hand -> Int -> (Card, Hand)
                   takeCardByIndex checked (Add c rest) 0 = (c, checked <+ rest)
-                  takeCardByIndex checked (Add c rest) n = removeNthCardHelper (Add c checked) rest (n-1) 
+                  takeCardByIndex checked (Add c rest) n = takeCardByIndex (Add c checked) rest (n-1) 
 
 --Property for shuffleDeck, if a deck has been shuffled, the shuffled deck contains the same cards.
 prop_shuffle_sameCards :: StdGen -> Card -> Hand -> Bool 
