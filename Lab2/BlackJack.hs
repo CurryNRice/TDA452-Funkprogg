@@ -29,7 +29,7 @@ size hand2
   = 1 + 1 + size Empty
   = 2
 -}
-
+hand2 :: Hand
 hand2 = Add (Card (Numeric 2) Hearts)
             (Add (Card Jack Spades) Empty)
 
@@ -168,3 +168,7 @@ prop_shuffle_sameCards g c h = c `belongsTo` h == c `belongsTo` shuffleDeck g h
         where  belongsTo :: Card -> Hand -> Bool 
                c `belongsTo` Empty      = False 
                c `belongsTo` (Add c' h) = c == c' || c `belongsTo` h
+
+--Property for shuffleDeck, perserving size of hand after shuffling it
+prop_size_shuffle :: StdGen -> Hand -> Bool
+prop_size_shuffle g hand = size hand == size (shuffleDeck g hand)
