@@ -2,7 +2,7 @@ module Sudoku where
 
 import Test.QuickCheck
 --import Data.List(replicate)
-import Data.Char(isDigit)
+import Data.Char(isDigit, digitToInt)
 
 ------------------------------------------------------------------------------
 
@@ -111,22 +111,22 @@ readSudoku filePath =
                     do
                       s <- readFile filePath
                       let sudoku = parseSudokuFile (lines s)
-                      return sudoku
-                      
+                      if (isSudoku sudoku)
+                        then return sudoku
+                      else error("file does not contain a valid Sudoku")
 
 parseSudokuFile :: [String] -> Sudoku
-parseSudokuFile s = Sudoku map buildRow s
+parseSudokuFile s = Sudoku $ map buildRow s
               where
 
-                buildRow :: String -> [Cell]
-                buildRow = buildRowHelper s []
+                buildRow :: [Char] -> [Cell]
+                buildRow s = buildRowHelper s []
                 buildRowHelper :: String -> [Cell] -> [Cell]
-                buildRowHelper (s:ss) l | isDigit s = buildRowHelper ss l:(Just (toEnum s))
-                                        | s == '.'  = buildRowHelper ss l:(Nothing)
-                                        | otherwise = buildRowHelper ss l
-                buildRowHelper [] l             = l
-
-               
+                buildRowHelper [] l                 = reverse l
+                buildRowHelper (s:ss) l | isDigit s = buildRowHelper ss $ (Just (digitToInt s)):l
+                                        | s == '.'  = buildRowHelper ss $ (Nothing):l
+                                        | s == '\n' = reverse l
+                                        | otherwise = error("file does not contain a valid Sudoku")
 
 ------------------------------------------------------------------------------
 
@@ -134,14 +134,20 @@ parseSudokuFile s = Sudoku map buildRow s
 
 -- | cell generates an arbitrary cell in a Sudoku
 cell :: Gen (Cell)
-cell = undefined
+cell = frequency [(9, elements[Nothing]),(1, rNum)]
+        where
+            rNum = do
+                  n <- choose(1, 9)
+                  return $ Just n
 
 
 -- * C2
 
--- | an instance for generating Arbitrary Sudokus
+-- | an instance for generating Arbitrary Sudokusx  
 instance Arbitrary Sudoku where
-  arbitrary = undefined
+  arbitrary = do
+                sud <- vectorOf 9 $ vectorOf 9 cell
+                return sud
 
  -- hint: get to know the QuickCheck function vectorOf
  
