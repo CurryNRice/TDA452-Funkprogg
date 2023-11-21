@@ -3,6 +3,7 @@ module Sudoku where
 import Test.QuickCheck
 --import Data.List(replicate)
 import Data.Char(isDigit, digitToInt)
+import Data.List(nub)
 
 ------------------------------------------------------------------------------
 
@@ -39,7 +40,21 @@ example =
     n = Nothing
     j = Just
 
-
+example2 :: Sudoku
+example2 =
+    Sudoku
+      [ [j 3,j 3,n  ,n  ,j 7,j 1,j 2,n  ,n  ]
+      , [n  ,j 5,n  ,n  ,n  ,n  ,j 1,j 8,n  ]
+      , [n  ,n  ,j 9,j 2,n  ,j 4,j 7,n  ,n  ]
+      , [n  ,n  ,n  ,n  ,j 1,j 3,n  ,j 2,j 8]
+      , [j 4,n  ,n  ,j 5,n  ,j 2,n  ,n  ,j 9]
+      , [j 2,j 7,n  ,j 4,j 6,n  ,n  ,n  ,n  ]
+      , [n  ,n  ,j 5,j 3,n  ,j 8,j 9,n  ,n  ]
+      , [n  ,j 8,j 3,n  ,n  ,n  ,n  ,j 6,n  ]
+      ]
+  where
+    n = Nothing
+    j = Just
 
 -- * A1
 
@@ -60,10 +75,10 @@ isSudoku s = ((length $ rows s) == 9)
            where 
                 checkRowsLength   :: Sudoku -> Bool
                 checkRowsLength   s = and (map (\n -> n == 9) (map length (rows s)))
-                checkElement :: Maybe Int -> Bool
-                checkElement e = case e of
-                                 Just e  -> (e <= 9 && e >= 0)
-                                 Nothing -> True
+checkElement :: Maybe Int -> Bool
+checkElement e = case e of
+          Just e  -> (e <= 9 && e >= 0)
+          Nothing -> True
 
 checkValidEntries :: Sudoku -> (Maybe Int -> Bool) -> Bool
 checkValidEntries s func = and (map rowCheck (rows s))
@@ -114,6 +129,7 @@ readSudoku filePath =
                       if (isSudoku sudoku)
                         then return sudoku
                       else error("file does not contain a valid Sudoku")
+                      return sudoku
 
 parseSudokuFile :: [String] -> Sudoku
 parseSudokuFile s = Sudoku $ map buildRow s
@@ -122,11 +138,11 @@ parseSudokuFile s = Sudoku $ map buildRow s
                 buildRow :: [Char] -> [Cell]
                 buildRow s = buildRowHelper s []
                 buildRowHelper :: String -> [Cell] -> [Cell]
-                buildRowHelper [] l                 = reverse l
                 buildRowHelper (s:ss) l | isDigit s = buildRowHelper ss $ (Just (digitToInt s)):l
                                         | s == '.'  = buildRowHelper ss $ (Nothing):l
                                         | s == '\n' = reverse l
-                                        | otherwise = error("file does not contain a valid Sudoku")
+                buildRowHelper _ l                 = reverse la
+
 
 ------------------------------------------------------------------------------
 
@@ -147,14 +163,14 @@ cell = frequency [(9, elements[Nothing]),(1, rNum)]
 instance Arbitrary Sudoku where
   arbitrary = do
                 sud <- vectorOf 9 $ vectorOf 9 cell
-                return sud
+                return $ Sudoku sud
 
  -- hint: get to know the QuickCheck function vectorOf
  
 -- * C3
 
 prop_Sudoku :: Sudoku -> Bool
-prop_Sudoku = undefined
+prop_Sudoku sud = isSudoku sud
   -- hint: this definition is simple!
   
 ------------------------------------------------------------------------------
@@ -165,21 +181,39 @@ type Block = [Cell] -- a Row is also a Cell
 -- * D1
 
 isOkayBlock :: Block -> Bool
-isOkayBlock = undefined
+isOkayBlock b = (and $ map checkElement b) 
+              && (length b == 9) 
+              && (length justs == length (nub justs))
+            where
+              justs = filter (/= Nothing) b
 
 
 -- * D2
 
 blocks :: Sudoku -> [Block]
-blocks = undefined
+blocks (Sudoku sudoku) = cSquares ++ cRows ++ cColumns
+      where
+        cSquares = getSquares sudoku
+        getSquares [] = []
+        getSquares (r1:r2:r3:rs) =  [(take 3 r1) ++ (take 3 r2) ++ (take 3 r3)
+                               , (take 3 (drop 3 r1)) ++ (take 3 (drop 3 r2))  ++ (take 3 (drop 3 r3)) 
+                               , (drop 6 r1) ++ (drop 6 r2) ++ (drop 6 r3)] 
+                               ++ getSquares rs -- TODO: GÖR DENNA SNYGG (Som skepparn 😉)
+        cRows    = sudoku
+        cColumns = getCols 0 sudoku
+        getCols 8 sud = map (!! 8) sud:[]
+        getCols n sud = map (!! n) sud: getCols (n+1) sud 
 
 prop_blocks_lengths :: Sudoku -> Bool
-prop_blocks_lengths = undefined
+prop_blocks_lengths sudoku = ((length bs) == 27)
+                           && (and $ map (\x -> length x == 9) bs)
+                           where 
+                            bs = blocks sudoku
 
 -- * D3
 
 isOkay :: Sudoku -> Bool
-isOkay = undefined
+isOkay s = (isSudoku s) && (and $ map isOkayBlock $ blocks s) -- 👍
 
 
 ---- Part A ends here --------------------------------------------------------
