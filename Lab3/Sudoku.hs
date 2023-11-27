@@ -4,7 +4,7 @@ import Test.QuickCheck
 --import Data.List(replicate)
 import Data.Char(isDigit, digitToInt)
 import Data.List
-import Data.Maybe(isJust)
+import Data.Maybe
 
 ------------------------------------------------------------------------------
 
@@ -214,35 +214,68 @@ prop_blanks_allBlanks = (length $ blanks allBlankSudoku) == 81
 
 
 -- * E2
-
+-- that, given a list, and a tuple containing an index in the list and a new value, updates the given list with the new value at the given index. Examples:
 (!!=) :: [a] -> (Int,a) -> [a]
-xs !!= (i,y) = putaHelpo [] xs (i, y)
-  where 
-    putaHelpo rest (x:xs) (0, a) = rest ++ a ++ xs
-    putaHelpo rest (x:xs) (n, a) = putaHelpo (rest ++ [x]) xs (n-1, a)
+(!!=) [] _ = []
+(!!=) (x:xs) (0, a)                     = a : xs
+(!!=) (x:xs) (n, a) | (n) > length xs = error "Index out of bounds"
+                    | otherwise         = x : (xs !!= (n-1, a))
 
---prop_bangBangEquals_correct :: ...
---prop_bangBangEquals_correct =
+
+--xs !!= (i,y) = putaHelpo [] xs (i, y)
+-- where 
+--    putaHelpo rest (x:xs) (0, a) = rest ++ a ++ xs
+--    putaHelpo rest (x:xs) (n, a) = putaHelpo (rest ++ [x]) xs (n-1, a)
+
+-- Expected properties: Input and output lists have the same length, 
+-- The element at the index in the output list is indeed replaced by the new value.
+prop_bangBangEquals_correct :: [Int] -> (Int,Int) -> Bool
+prop_bangBangEquals_correct xs (n, a) = prop_bangBangEquals_sameLength xs (n', a) 
+                                     && prop_bangBangEquals_indexChanged xs (n', a)
+  where 
+    n' = min (abs n) ((length xs)-1)
+    prop_bangBangEquals_sameLength :: [Int] -> (Int,Int) -> Bool
+    prop_bangBangEquals_sameLength xs (i, y) = length xs == length (xs !!= (i, y))
+    prop_bangBangEquals_indexChanged :: [Int] -> (Int,Int) -> Bool
+    prop_bangBangEquals_indexChanged [] _ = True
+    prop_bangBangEquals_indexChanged xs (i, y) = (xs !!= (i, y)) !! i == y
 
 
 -- * E3
-
+-- given a Sudoku, a position, and a new cell value, updates the given Sudoku at the given position with the new value
 update :: Sudoku -> Pos -> Cell -> Sudoku
-update = undefined
+update (Sudoku sudoku) (x,y) c = Sudoku (sudoku !!= (x, (sudoku !! x) !!= (y, c)))
 
---prop_update_updated :: ...
---prop_update_updated =
+-- checks that the updated position really has gotten the new value.
+prop_update_updated :: Sudoku -> Pos -> Cell -> Bool
+prop_update_updated (Sudoku sudoku) (x,y) c = (rows (update (Sudoku sudoku) (x',y') c)) !! x' !! y' == c
+  where x' = min (abs x) 8
+        y' = min (abs y) 8
 
 
 ------------------------------------------------------------------------------
 
 -- * F1
+-- | solves the given sudoku using a simple backtracking algorithm.
+solve :: Sudoku -> Maybe Sudoku
+solve s = case solve' s (blanks s) of
+            [] -> Nothing
+            ss -> Just $ [s | s <- ss, isOkay s] !! 0
+  where
+    solve' :: Sudoku -> [Pos] ->  [Sudoku]
+    solve' s [] = [s] 
+    solve' s (p:ps) | isOkay s = foldr (++) [] [solve' (update s p (Just n)) ps | n <- [1..9]]
+                    | otherwise = []
 
-
+  
 -- * F2
-
+readAndSolve :: FilePath -> IO ()
+readAndSolve = undefined
 
 -- * F3
-
+isSolutionOf :: Sudoku -> Sudoku -> Bool
+isSolutionOf = undefined
 
 -- * F4
+prop_SolveSound :: Sudoku -> Property
+prop_SolveSound = undefined
