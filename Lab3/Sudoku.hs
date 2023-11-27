@@ -75,7 +75,7 @@ checkValidEntries s func = all (all func) (rows s)
 -- | isFilled sud checks if sud is completely filled in,
 -- i.e. there are no blanks
 isFilled :: Sudoku -> Bool
-isFilled s = checkValidEntries s (isJust)
+isFilled s = checkValidEntries s isJust
 
 
 ------------------------------------------------------------------------------
@@ -106,10 +106,10 @@ readSudoku filePath =
                       return sudoku
 
 -- | parseSudokuFile takes the rows of a Sudoku string, and parses it to the row type and builds a Sudoku from it.
+-- TODO: This can be shortend to a substantialy smaller size using line finction probably.. 
 parseSudokuFile :: [String] -> Sudoku
 parseSudokuFile s = Sudoku $ map buildRow s
               where
-
                 buildRow :: [Char] -> [Cell]
                 buildRow s = buildRowHelper s []
                 buildRowHelper :: String -> [Cell] -> [Cell]
@@ -139,8 +139,6 @@ instance Arbitrary Sudoku where
   arbitrary = do
                 sud <- vectorOf 9 $ vectorOf 9 cell
                 return $ Sudoku sud
-
- -- hint: get to know the QuickCheck function vectorOf
  
 -- * C3
 prop_Sudoku :: Sudoku -> Bool
@@ -158,7 +156,7 @@ isOkayBlock b = all checkCell b
               && (length b == 9) 
               && (length justs == length (nub justs))
             where
-              justs = filter (isJust) b
+              justs = filter isJust b
 
 
 -- * D2
@@ -169,14 +167,13 @@ blocks (Sudoku sudoku) = cSquares ++ cRows ++ cColumns
       where
         cSquares = getSquares sudoku
         getSquares [] = []
-        getSquares (r1:r2:r3:rs) =  [take 3 r1 ++ take 3 r2 ++ take 3 r3
-                               , take 3 (drop 3 r1) ++ take 3 (drop 3 r2)  ++ take 3 (drop 3 r3)
-                               , drop 6 r1 ++ drop 6 r2 ++ drop 6 r3] 
-                               ++ getSquares rs
+        getSquares sud = [concatMap (take 3) (take 3 sud), 
+                          concatMap (take 3 . drop 3) (take 3 sud),
+                          concatMap (drop 6) (take 3 sud)]
+                           ++ getSquares (drop 3 sud)
         cRows    = sudoku
         cColumns = transpose sudoku
 
--- | check that all blocks are of size 9
 prop_blocks_lengths :: Sudoku -> Bool
 prop_blocks_lengths sudoku = (length bs == 27)
                           && all (\x -> length x == 9) bs
@@ -199,18 +196,17 @@ isOkay s = isSudoku s && all isOkayBlock (blocks s)
 type Pos = (Int,Int)
 
 -- * E1
-
+-- | Finds all blank cells in a given sudoku and returns thier positions
 blanks :: Sudoku -> [Pos]
 blanks (Sudoku sudoku) = blanks' (concat sudoku) 0
     where 
-
       blanks' [] _         = []
-      blanks' (c:concSudoku) i | c == Nothing = 
-                (i `div` 9, i `mod` 9) : blanks' concSudoku (i+1)
-                             |   otherwise = blanks' concSudoku (i+1)
+      blanks' (c:cs) i | isNothing c = 
+                       (i `div` 9, i `mod` 9) : blanks' cs (i+1)
+                               | otherwise    = blanks' cs (i+1)
 
 prop_blanks_allBlanks :: Bool
-prop_blanks_allBlanks = (length $ blanks allBlankSudoku) == 81
+prop_blanks_allBlanks = length  (blanks allBlankSudoku) == 81
 
 
 -- * E2
@@ -218,7 +214,7 @@ prop_blanks_allBlanks = (length $ blanks allBlankSudoku) == 81
 (!!=) :: [a] -> (Int,a) -> [a]
 (!!=) [] _ = []
 (!!=) (x:xs) (0, a)                     = a : xs
-(!!=) (x:xs) (n, a) | (n) > length xs = error "Index out of bounds"
+(!!=) (x:xs) (n, a) | n > length xs = error "Index out of bounds"
                     | otherwise         = x : (xs !!= (n-1, a))
 
 
@@ -227,28 +223,29 @@ prop_blanks_allBlanks = (length $ blanks allBlankSudoku) == 81
 --    putaHelpo rest (x:xs) (0, a) = rest ++ a ++ xs
 --    putaHelpo rest (x:xs) (n, a) = putaHelpo (rest ++ [x]) xs (n-1, a)
 
--- Expected properties: Input and output lists have the same length, 
+-- Checks the expected properties: 
+-- Input and output lists have the same length, 
 -- The element at the index in the output list is indeed replaced by the new value.
 prop_bangBangEquals_correct :: [Int] -> (Int,Int) -> Bool
 prop_bangBangEquals_correct xs (n, a) = prop_bangBangEquals_sameLength xs (n', a) 
                                      && prop_bangBangEquals_indexChanged xs (n', a)
   where 
-    n' = min (abs n) ((length xs)-1)
-    prop_bangBangEquals_sameLength :: [Int] -> (Int,Int) -> Bool
-    prop_bangBangEquals_sameLength xs (i, y) = length xs == length (xs !!= (i, y))
-    prop_bangBangEquals_indexChanged :: [Int] -> (Int,Int) -> Bool
-    prop_bangBangEquals_indexChanged [] _ = True
+    n' = min (abs n) (length xs - 1)
+    prop_bangBangEquals_sameLength xs (i, y)   = length xs == length (xs !!= (i, y))
+    prop_bangBangEquals_indexChanged [] _      = True
     prop_bangBangEquals_indexChanged xs (i, y) = (xs !!= (i, y)) !! i == y
 
 
 -- * E3
--- given a Sudoku, a position, and a new cell value, updates the given Sudoku at the given position with the new value
+-- given a Sudoku, a position, and a new cell value, 
+-- updates the given Sudoku at the given position with the new value
 update :: Sudoku -> Pos -> Cell -> Sudoku
 update (Sudoku sudoku) (x,y) c = Sudoku (sudoku !!= (x, (sudoku !! x) !!= (y, c)))
 
--- checks that the updated position really has gotten the new value.
+-- Checks that the updated position really has gotten the new value.
 prop_update_updated :: Sudoku -> Pos -> Cell -> Bool
-prop_update_updated (Sudoku sudoku) (x,y) c = (rows (update (Sudoku sudoku) (x',y') c)) !! x' !! y' == c
+prop_update_updated (Sudoku sudoku) (x,y) c = 
+          rows (update (Sudoku sudoku) (x',y') c) !! x' !! y' == c
   where x' = min (abs x) 8
         y' = min (abs y) 8
 
@@ -257,25 +254,36 @@ prop_update_updated (Sudoku sudoku) (x,y) c = (rows (update (Sudoku sudoku) (x',
 
 -- * F1
 -- | solves the given sudoku using a simple backtracking algorithm.
+
 solve :: Sudoku -> Maybe Sudoku
 solve s = case solve' s (blanks s) of
             [] -> Nothing
-            ss -> Just $ [s | s <- ss, isOkay s] !! 0
+            (s:_) -> Just s
   where
     solve' :: Sudoku -> [Pos] ->  [Sudoku]
     solve' s [] = [s] 
-    solve' s (p:ps) | isOkay s = foldr (++) [] [solve' (update s p (Just n)) ps | n <- [1..9]]
-                    | otherwise = []
+    solve' s (p:ps) = concat [solve' n ps | 
+            n <- map (update s p . Just) [1..9], isOkay n] 
 
   
 -- * F2
+-- Filepath -> IO Sudoku 
 readAndSolve :: FilePath -> IO ()
-readAndSolve = undefined
+readAndSolve f = do
+            s <- readSudoku f
+            let solved = fromJust $ solve s 
+            printSudoku solved
 
 -- * F3
 isSolutionOf :: Sudoku -> Sudoku -> Bool
-isSolutionOf = undefined
+isSolutionOf (Sudoku solved) (Sudoku sud) = isSolutionOf' (concat solved) (concat sud)
+      where
+        isSolutionOf' :: [Cell] -> [Cell] -> Bool
+        isSolutionOf' [] []                         = True
+        isSolutionOf' (s:ss) (c:cs) | s == c       = isSolutionOf' ss cs
+                                    | isNothing c  = isSolutionOf' ss cs
+                                    | otherwise    = False
 
 -- * F4
-prop_SolveSound :: Sudoku -> Property
-prop_SolveSound = undefined
+prop_SolveSound :: Sudoku -> Bool -- TODO FIX LATER LOL 
+prop_SolveSound sudoku = (fromJust $ solve sudoku) `isSolutionOf` sudoku
