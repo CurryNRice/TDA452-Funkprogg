@@ -174,6 +174,7 @@ blocks (Sudoku sudoku) = cSquares ++ cRows ++ cColumns
         cRows    = sudoku
         cColumns = transpose sudoku
 
+-- | Checks that the amount blocks are of the correct amount
 prop_blocks_lengths :: Sudoku -> Bool
 prop_blocks_lengths sudoku = (length bs == 27)
                           && all (\x -> length x == 9) bs
@@ -210,7 +211,8 @@ prop_blanks_allBlanks = length  (blanks allBlankSudoku) == 81
 
 
 -- * E2
--- that, given a list, and a tuple containing an index in the list and a new value, updates the given list with the new value at the given index. Examples:
+-- that, given a list, and a tuple containing an index in the list and a new value, 
+-- updates the given list with the new value at the given index. Examples:
 (!!=) :: [a] -> (Int,a) -> [a]
 (!!=) [] _ = []
 (!!=) (x:xs) (0, a)                     = a : xs
@@ -218,10 +220,6 @@ prop_blanks_allBlanks = length  (blanks allBlankSudoku) == 81
                     | otherwise         = x : (xs !!= (n-1, a))
 
 
---xs !!= (i,y) = putaHelpo [] xs (i, y)
--- where 
---    putaHelpo rest (x:xs) (0, a) = rest ++ a ++ xs
---    putaHelpo rest (x:xs) (n, a) = putaHelpo (rest ++ [x]) xs (n-1, a)
 
 -- Checks the expected properties: 
 -- Input and output lists have the same length, 
@@ -254,7 +252,6 @@ prop_update_updated (Sudoku sudoku) (x,y) c =
 
 -- * F1
 -- | solves the given sudoku using a simple backtracking algorithm.
-
 solve :: Sudoku -> Maybe Sudoku
 solve s = case solve' s (blanks s) of
             [] -> Nothing
@@ -267,7 +264,7 @@ solve s = case solve' s (blanks s) of
 
   
 -- * F2
--- Filepath -> IO Sudoku 
+-- | reads a sudoku from a file, solves the sudoku, and prints the result on the screen.
 readAndSolve :: FilePath -> IO ()
 readAndSolve f = do
             s <- readSudoku f
@@ -275,8 +272,10 @@ readAndSolve f = do
             printSudoku solved
 
 -- * F3
+-- Checks whether the first sudoku is a solution of the second sudoku
 isSolutionOf :: Sudoku -> Sudoku -> Bool
-isSolutionOf (Sudoku solved) (Sudoku sud) = isSolutionOf' (concat solved) (concat sud)
+isSolutionOf (Sudoku solved) (Sudoku sud) = isSolutionOf' (concat solved) (concat sud) 
+                                            && (length $ blanks (Sudoku solved)) == 0
       where
         isSolutionOf' :: [Cell] -> [Cell] -> Bool
         isSolutionOf' [] []                         = True
@@ -285,5 +284,12 @@ isSolutionOf (Sudoku solved) (Sudoku sud) = isSolutionOf' (concat solved) (conca
                                     | otherwise    = False
 
 -- * F4
-prop_SolveSound :: Sudoku -> Bool -- TODO FIX LATER LOL 
-prop_SolveSound sudoku = (fromJust $ solve sudoku) `isSolutionOf` sudoku
+-- Checks that the solution is a valid sudoku and that it is a solution of the original sudoku.
+prop_SolveSound :: Sudoku -> Bool  
+prop_SolveSound sudoku = case solve sudoku of
+                            Nothing -> True
+                            Just s  -> isSolutionOf s sudoku
+
+-- | Does the same as quickCheck, except that it only tests 30 tests.
+fewerChecks :: Testable prop => prop -> IO ()
+fewerChecks = quickCheckWith stdArgs{ maxSuccess = 30 }
