@@ -1,6 +1,9 @@
 module Expr where
 
+  
 import Prelude hiding (sin, cos)
+import qualified Prelude as P (sin, cos)
+
 
 {-data Expr
   = Num Integer
@@ -38,6 +41,8 @@ data Expr
  deriving (Eq, Show)
 
 
+simpEx = (add X X)
+
 exExpr = mul (add (sin X) (sin X)) (num 2.3)
 ex2Expr = mul (add (sin (mul (num 2) X)) (sin X)) (num 2.3)
 
@@ -68,7 +73,19 @@ showExpr (Opr Add e1 e2) = showExpr e1 ++ "+" ++ showExpr e2
 showExpr (Func f e) = case f of Sin -> "sin"; Cos -> "cos" 
                         ++ "(" ++ showExpr e ++ ")"  
 showExpr X = "x"
-showExpr (Num n) = case isInt n of True -> toInteger n 
+showExpr (Num n) = show n
 
 showFactor (Opr Add e1 e2) = "("++(showExpr $ Opr Add e1 e2)++")"
 showFactor e  = showExpr e
+
+-- | Given an Expression and a value for X, it evaluates the result of the expression.
+
+eval :: Expr -> Double -> Double
+eval (Num n) x = n
+eval (X) x     = x
+eval (Opr Add e1 e2) x = (eval e1 x) + (eval e2 x) 
+eval (Opr Mul e1 e2) x = (eval e1 x) * (eval e2 x)
+eval (Func Sin e1)   x = P.sin $ eval e1 x
+eval (Func Cos e1)   x = P.cos $ eval e1 x
+
+
