@@ -68,7 +68,7 @@ showExpr (Opr Add e1 e2) = showExpr e1 ++ "+" ++ showExpr e2
 showExpr (Func f e) = case f of Sin -> "sin"; Cos -> "cos" 
                         ++ "(" ++ showExpr e ++ ")"  
 showExpr X = "x"
-showExpr (Num n) = show n
+showExpr (Num n) = case isInt n of True -> toInteger n 
 
 showFactor (Opr Add e1 e2) = "("++(showExpr $ Opr Add e1 e2)++")"
 showFactor e  = showExpr e
