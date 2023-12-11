@@ -5,6 +5,7 @@
 import ThreepennyPages
 import Graphics.UI.Threepenny.Core as UI
 import qualified Graphics.UI.Threepenny as UI
+import Expr
 
 canWidth,canHeight :: Num a => a
 canWidth  = 300
@@ -41,10 +42,22 @@ readAndDraw :: Element -> Canvas -> UI ()
 readAndDraw input canvas =
   do -- Get the current formula (a String) from the input element
      formula <- get value input
+     let (Just expr) = (readExpr formula)
      -- Clear the canvas
      clearCanvas canvas
      -- The following code draws the formula text in the canvas and a blue line.
      -- It should be replaced with code that draws the graph of the function.
-     set UI.fillStyle (UI.solidColor (UI.RGB 0 0 0)) (pure canvas)
-     UI.fillText formula (10,canHeight/2) canvas
-     path "blue" [(10,10),(canWidth-10,canHeight/2)] canvas
+     -- set UI.fillStyle (UI.solidColor (UI.RGB 0 0 0)) (pure canvas)
+     -- UI.fillText formula (10,canHeight/2) canvas
+     path "blue" (points expr 0.01 (canWidth, canHeight)) canvas
+
+-- exExpr = mul (add (sin X) (sin X)) (num 2.3)
+
+points :: Expr -> Double -> (Int,Int) -> [Point]
+-- [(-(w'/2)),((-(w'/2))+d)..(w'/2)]
+points e d (w,h) = [mathToPix (createCoord x) | x <- [(-6), ((-6)+d) .. 6 ]]
+  -- [((x+(w'/2)), ((-(eval e x)) + (w'/2))) | x <- [(-(w'/2)),((-(w'/2))+d)..(w'/2)]]
+  where w' = fromIntegral w
+        createCoord x = (x, eval e x)
+        mathToPix (x, y) = (((x*(1/d)) + (w'/2)), (((-y)*(1/d))+(w'/2)))
+
