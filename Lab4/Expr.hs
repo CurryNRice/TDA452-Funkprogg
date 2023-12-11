@@ -101,8 +101,10 @@ readExpr s = case parse expr s'' of
   where
     s' = filter (/=' ') s
     s'' = repl s'
+    -- | repl is an ugly soulution to handleing '-', there might be a better way to do it. 
     repl [] = ""
-    repl (s:'-':ss) | s /= 'e' = s : "(-1)*" ++ (repl ss)
+    repl (s:'-':ss) | s /= 'e' = case s of '-' -> "(-1)*"; _ -> (s:[]); ++  "(-1)*" ++ (repl ss) 
+    repl ('-':ss) = "(-1)*" ++ (repl ss) 
     repl (s:ss) = s: (repl ss)
 
 
@@ -136,6 +138,8 @@ xParse = do
   char 'x' 
   return X
 
+
+-- THIS IS UGLY AND NEEDS A REFACTOR
 number' = number'' <|> number
 
 number'' = do 
@@ -198,6 +202,12 @@ simplify e  | e == simplify' e = e
 simplify' :: Expr -> Expr
 simplify' (Opr Mul (Num 0.0) _) = Num 0.0 
 simplify' (Opr Mul _ (Num 0.0)) = Num 0.0 
+simplify' (Opr Mul (Num (-1)) (Num (-1))) = Num 1 
+simplify' (Opr Mul (Num (1)) (Num (1))) = Num 1 
+simplify' (Opr Mul (Num (-1)) (Num (1))) = Num (-1) 
+simplify' (Opr Mul (Num (1)) (Num (-1))) = Num (-1) 
+simplify' (Opr Mul (Num (1)) e) = simplify' e 
+simplify' (Opr Mul e (Num (1))) = simplify' e 
 simplify' (Opr Add (Num 0.0) e) = simplify' e
 simplify' (Opr Add e (Num 0.0)) = simplify' e
 simplify' (Opr Add (Num n1) (Num n2)) = Num (n1 + n2)
