@@ -29,7 +29,7 @@ setup window =
      draw    <- mkButton "Draw graph"         -- The draw button
      zoomTxt <- mkHTML "<i>Zoom:</i>"         -- The slider text
      zoom    <- mkSlider (1,5) 1              -- The zoom slider
-     diff    <- mkButton "d/dx="             -- The diffenentiate button
+     diff    <- mkButton "d/dx="              -- The diffenentiate button
        -- The markup "<i>...</i>" means that the text inside should be rendered
        -- in italics.
 
@@ -45,21 +45,18 @@ setup window =
 
      -- Interaction (install event handlers)
      on UI.click     draw  $ \ _ -> readAndDraw input scale canvas
+
+     -- Differantiate button event
      on UI.click     diff  $ \ _ -> do
           formula <- get value input
-          -- expr = case (readExpr formula) of 
-          --            (Just e) -> e -- error ("The derivative is: " ++ (showExpr (differentiate e)))
-          --            Nothing -> error "differantiate proplem"
-          --let derivative  = differentiate expr
-          --element input # set UI.text (showExpr derivative)
-          -- pure input # set UI.text (showExpr derivative)
           pure input # set value (clean $ diffr formula) 
           readAndDraw input scale canvas
 
+     -- Zoom event 
      on valueChange' zoom  $ \ _ -> do
           zoomVal <- get value zoom 
           let zoomVal' = read zoomVal
-          let scale' = scale/zoomVal'
+          let scale'   = scale/zoomVal'
           readAndDraw input scale' canvas
      on valueChange' input $ \ _ -> readAndDraw input scale canvas
      where 
@@ -70,25 +67,23 @@ readAndDraw :: Element -> Double -> Canvas -> UI ()
 readAndDraw input scalor canvas =
   do -- Get the current formula (a String) from the input element
      formula <- get value input
-     let expr = case (readExpr formula) of 
+     let expr = case readExpr formula of 
                           (Just e) -> e
                           Nothing -> error ("Problem in the readDraw formula was" ++ formula)
      -- Clear the canvas
      clearCanvas canvas
-     -- The following code draws the formula text in the canvas and a blue line.
-     -- It should be replaced with code that draws the graph of the function.
-     -- set UI.fillStyle (UI.solidColor (UI.RGB 0 0 0)) (pure canvas)
-     -- UI.fillText formula (10,canHeight/2) canvas
+     -- The following code draws the formula as a graph
      path "blue" (points expr scalor (canWidth, canHeight)) canvas
 
--- exExpr = mul (add (sin X) (sin X)) (num 2.3)
 
+-- | Creates poins for all values (x, y) where y is the evaluated expression at x. 
+-- | It also take into account the scale d 
 points :: Expr -> Double -> (Int,Int) -> [Point]
--- [(-(w'/2)),((-(w'/2))+d)..(w'/2)]
-points e d (w,h) = [mathToPix (createCoord x) | x <- [(-6), ((-6)+d) .. 6 ]]
-  -- [((x+(w'/2)), ((-(eval e x)) + (w'/2))) | x <- [(-(w'/2)),((-(w'/2))+d)..(w'/2)]]
-  where w' = fromIntegral w
-        createCoord x = (x, eval e x)
-        mathToPix (x, y) = (((x*(1/d)) + (w'/2)), (((-y)*(1/d))+(w'/2)))
+points e d (w,h) = [mathToPix (createCoord x) | x <- [(-wm), ((-wm)+d) .. wm ]]
+  where 
+     w' = fromIntegral w
+     wm = w' * d 
+     createCoord x = (x, eval e x)
+     mathToPix (x, y) = (x/d + w'/2, (-y)/d+w'/2)
 
 
